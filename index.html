@@ -204,6 +204,14 @@
             renderDeletedTasks();
         }
 
+        // Función para eliminar definitivamente una tarea
+        function permanentDeleteTask(index) {
+            if (confirm('¿Estás seguro de eliminar definitivamente esta tarea?')) {
+                deletedTasks.splice(index, 1);
+                renderDeletedTasks();
+            }
+        }
+
         // Función para renderizar las tareas eliminadas
         function renderDeletedTasks() {
             deletedTasksList.innerHTML = '';
@@ -215,13 +223,23 @@
                 textSpan.textContent = task.text;
                 textSpan.className = 'text-muted';
                 
+                const buttonsDiv = document.createElement('div');
+                
                 const restoreBtn = document.createElement('button');
-                restoreBtn.className = 'btn btn-sm btn-outline-primary';
+                restoreBtn.className = 'btn btn-sm btn-outline-primary me-2';
                 restoreBtn.innerHTML = '<i class="fas fa-undo"></i> Restaurar';
                 restoreBtn.onclick = () => restoreTask(index);
                 
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-sm btn-outline-danger';
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Eliminar';
+                deleteBtn.onclick = () => permanentDeleteTask(index);
+                
+                buttonsDiv.appendChild(restoreBtn);
+                buttonsDiv.appendChild(deleteBtn);
+                
                 li.appendChild(textSpan);
-                li.appendChild(restoreBtn);
+                li.appendChild(buttonsDiv);
                 deletedTasksList.appendChild(li);
             });
 
