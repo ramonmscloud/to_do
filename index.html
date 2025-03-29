@@ -64,6 +64,18 @@
             </div>
         </div>
 
+        <!-- Tareas eliminadas -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-8">
+                <div class="card bg-light">
+                    <div class="card-header bg-secondary text-white">
+                        Tareas Eliminadas
+                    </div>
+                    <ul id="deletedTasksList" class="list-group list-group-flush"></ul>
+                </div>
+            </div>
+        </div>
+
         <!-- Botones de acción -->
         <div class="row justify-content-center">
             <div class="col-md-8">
@@ -84,14 +96,16 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Lista de tareas
+        // Listas de tareas
         let tasks = [];
+        let deletedTasks = [];
 
         // Elementos del DOM
         const taskInput = document.getElementById('taskInput');
         const micBtn = document.getElementById('micBtn');
         const addBtn = document.getElementById('addBtn');
         const taskList = document.getElementById('taskList');
+        const deletedTasksList = document.getElementById('deletedTasksList');
         const loadBtn = document.getElementById('loadBtn');
         const saveBtn = document.getElementById('saveBtn');
         const fileInput = document.getElementById('fileInput');
@@ -176,13 +190,56 @@
 
         // Función para eliminar una tarea
         function deleteTask(index) {
-            tasks.splice(index, 1);
+            const deletedTask = tasks.splice(index, 1)[0];
+            deletedTasks.push(deletedTask);
             renderTasks();
+            renderDeletedTasks();
+        }
+
+        // Función para restaurar una tarea eliminada
+        function restoreTask(index) {
+            const restoredTask = deletedTasks.splice(index, 1)[0];
+            tasks.push(restoredTask);
+            renderTasks();
+            renderDeletedTasks();
+        }
+
+        // Función para renderizar las tareas eliminadas
+        function renderDeletedTasks() {
+            deletedTasksList.innerHTML = '';
+            deletedTasks.forEach((task, index) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                
+                const textSpan = document.createElement('span');
+                textSpan.textContent = task.text;
+                textSpan.className = 'text-muted';
+                
+                const restoreBtn = document.createElement('button');
+                restoreBtn.className = 'btn btn-sm btn-outline-primary';
+                restoreBtn.innerHTML = '<i class="fas fa-undo"></i> Restaurar';
+                restoreBtn.onclick = () => restoreTask(index);
+                
+                li.appendChild(textSpan);
+                li.appendChild(restoreBtn);
+                deletedTasksList.appendChild(li);
+            });
+
+            // Ocultar o mostrar la sección de tareas eliminadas
+            const deletedTasksSection = deletedTasksList.closest('.card');
+            if (deletedTasks.length === 0) {
+                deletedTasksSection.style.display = 'none';
+            } else {
+                deletedTasksSection.style.display = 'block';
+            }
         }
 
         // Función para guardar la lista en un archivo
         function saveList() {
-            const content = tasks.map(task => `${task.completed ? '[x]' : '[ ]'} ${task.text}`).join('\n');
+            const activeContent = tasks.map(task => `A|${task.completed ? '[x]' : '[ ]'} ${task.text}`);
+            const deletedContent = deletedTasks.map(task => `D|${task.completed ? '[x]' : '[ ]'} ${task.text}`);
+            const content = [...activeContent, ...deletedContent].join('\n');
+            
             const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -199,13 +256,26 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 const content = e.target.result;
-                tasks = content.split('\n')
+                tasks = [];
+                deletedTasks = [];
+                
+                content.split('\n')
                     .filter(line => line.trim())
-                    .map(line => ({
-                        text: line.substring(4),
-                        completed: line.startsWith('[x]')
-                    }));
+                    .forEach(line => {
+                        const type = line[0];
+                        const taskText = line.substring(6);
+                        const completed = line.substring(2, 5) === '[x]';
+                        const task = { text: taskText, completed: completed };
+                        
+                        if (type === 'A') {
+                            tasks.push(task);
+                        } else if (type === 'D') {
+                            deletedTasks.push(task);
+                        }
+                    });
+                    
                 renderTasks();
+                renderDeletedTasks();
             };
             reader.readAsText(file);
         }
