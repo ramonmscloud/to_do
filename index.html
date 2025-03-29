@@ -87,6 +87,9 @@
                     <button class="btn btn-info text-white" id="saveBtn">
                         <i class="fas fa-download me-2"></i>Guardar Lista
                     </button>
+                    <button class="btn btn-warning text-white" id="speakBtn">
+                        <i class="fas fa-volume-up me-2"></i>Leer Lista
+                    </button>
                 </div>
             </div>
         </div>
@@ -108,7 +111,12 @@
         const deletedTasksList = document.getElementById('deletedTasksList');
         const loadBtn = document.getElementById('loadBtn');
         const saveBtn = document.getElementById('saveBtn');
+        const speakBtn = document.getElementById('speakBtn');
         const fileInput = document.getElementById('fileInput');
+
+        // Configuración del sintetizador de voz
+        const synth = window.speechSynthesis;
+        let speaking = false;
 
         // Configuración del reconocimiento de voz
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -319,6 +327,59 @@
             }
         });
         saveBtn.addEventListener('click', saveList);
+
+        // Función para leer la lista de tareas
+        function speakTaskList() {
+            if (speaking) {
+                synth.cancel();
+                speaking = false;
+                speakBtn.innerHTML = '<i class="fas fa-volume-up me-2"></i>Leer Lista';
+                speakBtn.classList.remove('btn-danger');
+                speakBtn.classList.add('btn-warning');
+                return;
+            }
+
+            if (tasks.length === 0) {
+                const emptyMsg = new SpeechSynthesisUtterance('No hay tareas en la lista');
+                emptyMsg.lang = 'es-ES';
+                synth.speak(emptyMsg);
+                return;
+            }
+
+            speaking = true;
+            speakBtn.innerHTML = '<i class="fas fa-stop me-2"></i>Detener';
+            speakBtn.classList.remove('btn-warning');
+            speakBtn.classList.add('btn-danger');
+
+            const introduction = new SpeechSynthesisUtterance('Lista de tareas:');
+            introduction.lang = 'es-ES';
+            
+            const taskTexts = tasks.map((task, index) => {
+                const status = task.completed ? 'Completada: ' : 'Pendiente: ';
+                return `Tarea ${index + 1}: ${status}${task.text}`;
+            });
+
+            synth.speak(introduction);
+            
+            taskTexts.forEach((text, index) => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'es-ES';
+                
+                if (index === taskTexts.length - 1) {
+                    utterance.onend = () => {
+                        speaking = false;
+                        speakBtn.innerHTML = '<i class="fas fa-volume-up me-2"></i>Leer Lista';
+                        speakBtn.classList.remove('btn-danger');
+                        speakBtn.classList.add('btn-warning');
+                    };
+                }
+                
+                synth.speak(utterance);
+            });
+        }
+
+        // Event listener para el botón de lectura
+        speakBtn.addEventListener('click', speakTaskList);
 
         // Inicializar la visualización de tareas eliminadas
         renderDeletedTasks();
